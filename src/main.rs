@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+mod vga_wrapper;
 
 use core::panic::PanicInfo;
 
