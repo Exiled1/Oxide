@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+use volatile::Volatile;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -94,11 +97,30 @@ impl Writer {
             }
         }
     }
-
+    /// Writes a string to the VGA buffer.
     pub fn write_string(&mut self, string: &str){
-        
+        for byte in string.bytes(){
+            match byte {
+                // Get the inclusive range of all printable characters in ascii.
+                0x20..=0x7e | b'\n' => self.write_byte(byte),
+                _ => self.write_byte(0xfe), // If we find an invalid character, print ■
+            }
+        }
     }
+
     fn write_newline(&mut self){
         todo!("Newline WIP");
     }
+}
+
+pub fn print_test(string: &str){
+    use core::fmt::Write;
+    let mut writer = &mut Writer{
+        col_position: 0,
+        color_code: ColorCoding::new(Color::Black, Color::LightCyan),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer)},
+        // Make a mutable reference by dereferencing a mutable pointer to a Buffer.
+    };
+    Writer::write_string(writer, string);
+    
 }
