@@ -93,12 +93,10 @@ impl Writer {
                 self.col_position += 1; // increment column positon.
             }
         }
-        
-
     }
 
     pub fn write_string(&mut self, string: &str){
-
+        
     }
     fn write_newline(&mut self){
         todo!("Newline WIP");
