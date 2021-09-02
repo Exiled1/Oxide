@@ -1,6 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
+
+// use core::{cell::UnsafeCell, ptr::{write_volatile, read_volatile}};
 use volatile::Volatile;
+use core::fmt;
+use lazy_static::lazy_static;
+use spin::Mutex;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -35,10 +40,7 @@ impl ColorCoding {
     // 0 0 0 0 0 0 0 0
     // 1 1 1 1 0 0 0 0
     //         1 1 1 1
-    // 0 0 0 0 0 0 0 0
-
-    
-    
+    // 0 0 0 0 0 0 0 0    
 }   
 
 // Width = 80;
@@ -52,12 +54,13 @@ struct TextCharacter { // C struct.
     color_code: ColorCoding,
 }
 
+
 const TEXT_BUF_HEIGHT: usize = 25;
 const TEXT_BUF_WIDTH: usize = 80;
 
 #[repr(transparent)] // Should keep the same memory layout as the char_buffer itself. There should be no offset.
-struct Buffer {
-    char_buf: [[TextCharacter; TEXT_BUF_WIDTH]; TEXT_BUF_HEIGHT],
+struct Buffer{
+    char_buf: [[Volatile<TextCharacter>; TEXT_BUF_WIDTH]; TEXT_BUF_HEIGHT],
     // Create a 2d text buffer array for our buffer Height and width.
 }
 
@@ -88,16 +91,18 @@ impl Writer {
                 let buf_col = self.col_position;
     
                 let color_code = self.color_code; // Set our color to whatever was passed.
-    
-                self.buffer.char_buf[buf_row][buf_col] = TextCharacter{
+                
+                self.buffer.char_buf[buf_row][buf_col].write(TextCharacter{
                     ascii_char: byte, // write the byte to the current x, y position in the buffer.
                     color_code, // set the color code to whatever was given in.
-                };
+                });
+                // Has the ability to overwrite text position.
+                
                 self.col_position += 1; // increment column positon.
             }
         }
     }
-    /// Writes a string to the VGA buffer.
+    /// Writes a string to the VGA buffer by bytes.
     pub fn write_string(&mut self, string: &str){
         for byte in string.bytes(){
             match byte {
@@ -107,20 +112,67 @@ impl Writer {
             }
         }
     }
-
+    /// When this is called, go through and move all of the text up one line.
     fn write_newline(&mut self){
-        todo!("Newline WIP");
+        
+        for cur_row in 1..TEXT_BUF_HEIGHT{ // Non inclusive write.
+            for cur_col in 0..TEXT_BUF_WIDTH {
+                let new_char = self.buffer.char_buf[cur_row][cur_col].read();
+                self.buffer.char_buf[cur_row - 1][cur_col].write(new_char); 
+                // Write the old bytes one row up at a time. Kind of like dial up.
+            }
+        }
+        self.clear_row(TEXT_BUF_HEIGHT - 1);
+        self.col_position = 0;
+    }
+
+    /// Clear the row at the specified position.
+    fn clear_row(&mut self, row_num: usize){
+        let clear_char = TextCharacter{
+            ascii_char: 0x20, // ' ', space.
+            color_code: self.color_code,
+
+        };
+        for column in 0..TEXT_BUF_WIDTH {
+            // For the width of the buffer, write a space for clearing.
+            self.buffer.char_buf[row_num][column].write(clear_char);
+        }
+    }
+}
+// Create an implementation for formatted writing.
+impl fmt::Write for Writer {
+    fn write_str(&mut self, string: &str) -> fmt::Result {
+        self.write_string(string);
+        Ok(())
     }
 }
 
-pub fn print_test(string: &str){
-    use core::fmt::Write;
-    let mut writer = &mut Writer{
+// Provide a standard way of writing to the VGA buffer, WIP.
+lazy_static!{
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         col_position: 0,
-        color_code: ColorCoding::new(Color::Black, Color::LightCyan),
+        color_code: ColorCoding::new(Color::Black, Color::Cyan),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer)},
-        // Make a mutable reference by dereferencing a mutable pointer to a Buffer.
-    };
-    Writer::write_string(writer, string);
+    });
+}
+
+/**
+    These macros were ripped from the std library for the macros of the print functions
+*/
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::vga_wrapper::_print(format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
     
+    WRITER.lock().write_fmt(args).unwrap();
 }
