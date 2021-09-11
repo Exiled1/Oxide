@@ -4,17 +4,29 @@ version = "0.1.0"
 edition = "2018"
 
 [profile.dev]
-panic = "abort"
+#panic = "abort"
 
 [profile.release]
-panic = "abort"
+#panic = "abort"
 
 [dependencies]
 bootloader = "0.9.8" 
 lazy_static = {version = "1.4.0", features = ["spin_no_std"]}
 spin = "0.9.2"
 volatile = "0.2.6"
+x86_64 = "0.14.4"
+uart_16550 = "0.2.0"
 
+[package.metadata.bootimage]
+build-command = ["build"]
+#run-command = ["qemu-system-x86_64.exe", "-drive", "format=raw,file=target/x86-unknown-bare_metal/debug/bootimage-oxide.bin"]
+run-command = ["qemu-system-x86_64.exe", "-drive", "format=raw,file={}"]
+test-args = [
+    "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio",
+    "-display", "none"
+]
+test-success-exit-code = 33 # (0x10 << 1 | 1)
+# We specify the io port at a magical 0xf4 because why not :shrug:, and the port size is 4 bytes.
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

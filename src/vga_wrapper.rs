@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
+use crate::println;
+
 // use core::{cell::UnsafeCell, ptr::{write_volatile, read_volatile}};
 use volatile::Volatile;
 use core::fmt;
@@ -28,6 +30,14 @@ pub enum Color {
     White = 15,
 }
 
+lazy_static!{
+    /// Provide a global standard way of writing to the VGA buffer through a 'WRITER' instance, WIP.
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        col_position: 0,
+        color_code: ColorCoding::new(Color::Black, Color::Cyan),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer)},
+    });
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)] // Specify that the type representation is the representation of its only field. Since ColorCoding(u8) might not behave the same as u8.
@@ -118,12 +128,13 @@ impl Writer {
         for cur_row in 1..TEXT_BUF_HEIGHT{ // Non inclusive write.
             for cur_col in 0..TEXT_BUF_WIDTH {
                 let new_char = self.buffer.char_buf[cur_row][cur_col].read();
+                // Read the character byte at the x, y location, then after reading it, write it as shown below.
                 self.buffer.char_buf[cur_row - 1][cur_col].write(new_char); 
                 // Write the old bytes one row up at a time. Kind of like dial up.
             }
         }
-        self.clear_row(TEXT_BUF_HEIGHT - 1);
-        self.col_position = 0;
+        self.clear_row(TEXT_BUF_HEIGHT - 1); // -1 to not clear the first row, since that'd be weird.
+        self.col_position = 0; // set to beginning of buffer for printing.
     }
 
     /// Clear the row at the specified position.
@@ -147,14 +158,32 @@ impl fmt::Write for Writer {
     }
 }
 
-// Provide a standard way of writing to the VGA buffer, WIP.
-lazy_static!{
-    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
-        col_position: 0,
-        color_code: ColorCoding::new(Color::Black, Color::Cyan),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer)},
-    });
+#[test_case]
+/// Tests printing works at all.
+fn test_println_sanity_check(){
+    println!("If this printed, println works as intended");
 }
+
+#[test_case]
+/// Test the length of the buffer and see if it works.
+fn test_println_fill_buffer() {
+    for _ in 0..200 {
+        println!("Testing the VGA buffer.");
+    }
+}
+
+#[test_case]
+fn test_println_format_output() {
+    let string = "Some test string that fits on a single line";
+    println!("{}", string);
+    for (i, ch) in string.chars().enumerate() {
+        let screen_char = WRITER.lock().buffer.char_buf[TEXT_BUF_HEIGHT - 2][i].read();
+        assert_eq!(char::from(screen_char.ascii_char), ch);
+    }
+}
+
+
+// ----- Exported macros -----
 
 /**
     These macros were ripped from the std library for the macros of the print functions
@@ -173,6 +202,5 @@ macro_rules! println {
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    
     WRITER.lock().write_fmt(args).unwrap();
 }
