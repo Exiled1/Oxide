@@ -47,7 +47,7 @@ impl ColorCoding {
     fn new(background: Color, foreground: Color) -> ColorCoding{
         ColorCoding((background as u8) << 4 | (foreground as u8))
     }
-    // 0 0 0 0 0 0 0 0
+    // 0 0 0 0   0 0 0 0
     // 1 1 1 1 0 0 0 0
     //         1 1 1 1
     // 0 0 0 0 0 0 0 0    
@@ -158,6 +158,8 @@ impl fmt::Write for Writer {
     }
 }
 
+// -------- VGA Tests --------
+
 #[test_case]
 /// Tests printing works at all.
 fn test_println_sanity_check(){
@@ -173,6 +175,7 @@ fn test_println_fill_buffer() {
 }
 
 #[test_case]
+/// Tests for working formatted output, if it fails, somethings not getting printed correctly to the VGA buffer
 fn test_println_format_output() {
     let string = "Some test string that fits on a single line";
     println!("{}", string);
