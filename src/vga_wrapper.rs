@@ -47,10 +47,10 @@ impl ColorCoding {
     fn new(background: Color, foreground: Color) -> ColorCoding{
         ColorCoding((background as u8) << 4 | (foreground as u8))
     }
-    // 0 0 0 0   0 0 0 0
-    // 1 1 1 1 0 0 0 0
-    //         1 1 1 1
-    // 0 0 0 0 0 0 0 0    
+    // 0 0 0 0  0 0 0 0  == Black on black
+    // 1 1 1 1  0 0 0 0  == background
+    // 0 0 0 0  1 1 1 1  == foreground
+    
 }   
 
 // Width = 80;

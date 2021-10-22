@@ -23,8 +23,8 @@ uart_16550 = "0.2.0"
 
 [package.metadata.bootimage]
 build-command = ["build"]
-#run-command = ["qemu-system-x86_64.exe", "-drive", "format=raw,file=target/x86-unknown-bare_metal/debug/bootimage-oxide.bin"]
-run-command = ["qemu-system-x86_64.exe", "-drive", "format=raw,file={}"]
+#run-command = ["qemu-system-x86_64", "-drive", "format=raw,file=target/x86-unknown-bare_metal/debug/bootimage-oxide.bin"]
+run-command = ["qemu-system-x86_64", "-drive", "format=raw,file={}"]
 test-args = [
     "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio",
     "-display", "none"

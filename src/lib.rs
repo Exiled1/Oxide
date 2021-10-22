@@ -1,15 +1,18 @@
 #![no_std]
+#![feature(const_maybe_uninit_as_ptr)]
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
 #![feature(abi_x86_interrupt)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+#![feature(asm)]
+
 
 use core::panic::PanicInfo;
-
 pub mod serial;
 pub mod vga_wrapper;
 pub mod interrupts;
+pub mod kdebug;
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -37,6 +40,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
 pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
+    
     exit_qemu(QemuExitCode::Failed);
     loop {}
 }

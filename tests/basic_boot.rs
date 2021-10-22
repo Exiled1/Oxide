@@ -7,6 +7,8 @@
 
 use core::panic::PanicInfo;
 
+// use oxide::kdebug::backtrace;
+
 #[no_mangle] // don't mangle the name of this function
 pub extern "C" fn _start() -> ! {
     test_main();
@@ -16,5 +18,6 @@ pub extern "C" fn _start() -> ! {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    
     oxide::test_panic_handler(info)
 }
