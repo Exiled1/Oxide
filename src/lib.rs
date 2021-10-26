@@ -6,13 +6,15 @@
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![feature(asm)]
+#![allow(unused_imports)]
 
-
+use multiboot2;
 use core::panic::PanicInfo;
 pub mod serial;
 pub mod vga_wrapper;
 pub mod interrupts;
 pub mod kdebug;
+pub mod memory;
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -29,7 +31,9 @@ where
     }
 }
 
+
 pub fn test_runner(tests: &[&dyn Testable]) {
+    // This was cool to see,
     serial_println!("Running {} tests", tests.len());
     for test in tests {
         test.run();

@@ -5,37 +5,25 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(asm)]
 #![allow(unused_imports)]
+#![allow(unused_variables)]
 
 use oxide::println;
 use core::panic::PanicInfo;
+use bootloader::{BootInfo, entry_point}; 
+// Bringing these in to quickly redefine my entry point and because the crate I'm using passes 
+// the memory map/physical memory abstraction which is passed over during the boot process
 use oxide::kdebug::backtrace;
 
+entry_point!(kmain); // Use this to make it so the bootloader crate loads our kmain.
 
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+fn kmain(boot_info: &'static BootInfo) -> ! {
     println!("Hello World{}", "!");
-    rawr();
+    
     #[cfg(test)]
     test_main();
     loop {}
 }
-fn rawr() -> (){
-    rawr2()
-}
-
-fn rawr2() -> (){
-    rawr3()
-}
-fn rawr3() -> (){
-    rawr4()
-}
-fn rawr4() -> (){
-    rawr5()
-}
-fn rawr5() -> (){
-    panic!();
-}
-
 
 /// This function is called on panic.
 #[cfg(not(test))]
