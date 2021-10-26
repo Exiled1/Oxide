@@ -19,7 +19,7 @@ entry_point!(kmain); // Use this to make it so the bootloader crate loads our km
 #[no_mangle]
 fn kmain(boot_info: &'static BootInfo) -> ! {
     println!("Hello World{}", "!");
-    
+
     #[cfg(test)]
     test_main();
     loop {}
